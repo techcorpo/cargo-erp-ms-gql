@@ -59,4 +59,66 @@
       localStorage.setItem('sessionKey', session);
     }
   };
+
+  // Admin session management functions for ES6 modules
+  window.getSession = function() {
+    const session = sessionStorage.getItem('adminSession');
+    if (!session) return null;
+    
+    const sessionData = JSON.parse(session);
+    if (Date.now() > sessionData.expiresAt) {
+      sessionStorage.removeItem('adminSession');
+      return null;
+    }
+    
+    return sessionData;
+  };
+
+  window.setSession = function(systemUserId, email, role) {
+    const sessionData = {
+      systemUserId,
+      email,
+      role,
+      loginTime: Date.now(),
+      expiresAt: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+    };
+    sessionStorage.setItem('adminSession', JSON.stringify(sessionData));
+  };
+
+  window.logout = function() {
+    sessionStorage.removeItem('adminSession');
+    localStorage.removeItem('auth_token');
+    window.location.href = 'admin-login.html';
+  };
 })();
+
+// ES6 module exports for admin dashboard compatibility
+export function getSession() {
+  const session = sessionStorage.getItem('adminSession');
+  if (!session) return null;
+  
+  const sessionData = JSON.parse(session);
+  if (Date.now() > sessionData.expiresAt) {
+    sessionStorage.removeItem('adminSession');
+    return null;
+  }
+  
+  return sessionData;
+}
+
+export function setSession(systemUserId, email, role) {
+  const sessionData = {
+    systemUserId,
+    email,
+    role,
+    loginTime: Date.now(),
+    expiresAt: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+  };
+  sessionStorage.setItem('adminSession', JSON.stringify(sessionData));
+}
+
+export function logout() {
+  sessionStorage.removeItem('adminSession');
+  localStorage.removeItem('auth_token');
+  window.location.href = 'admin-login.html';
+}
