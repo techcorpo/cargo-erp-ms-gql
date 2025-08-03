@@ -1,0 +1,9 @@
+:root{ --drawer-width:220px; --drawer-width-collapsed:60px; --navbar-h:44px; }
+html,body{ height:100%; } body{ font-size:12px; }
+.mt-navbar{ margin-top:var(--navbar-h); } .navbar{ height:var(--navbar-h); }
+.form-label-sm{ font-size:11px; margin-bottom:.25rem; }
+.drawer{ position:fixed; top:var(--navbar-h); bottom:0; width:var(--drawer-width);
+  transition:width .15s ease; overflow-x:hidden; overflow-y:auto; }
+.drawer.collapsed{ width:var(--drawer-width-collapsed); }
+.drawer .label{ white-space:nowrap; } .drawer.collapsed .label{ display:none; }
+.list-group-item{ padding:.5rem .75rem; }

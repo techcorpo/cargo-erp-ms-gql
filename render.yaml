@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: cargo-graphql-api
+    runtime: node
+    buildCommand: cd api && npm install
+    startCommand: cd api && npm start
+    envVars:
+      - key: DB_SERVER
+        value: ssba-cargo.database.windows.net
+      - key: DB_NAME
+        value: cargo
+      - key: DB_USER
+        value: prateek_nigam
+      - key: DB_PASSWORD
+        value: Shivay#81
+      - key: DB_PORT
+        value: 1433
+      - key: DB_ENCRYPT
+        value: true
+      - key: DB_TRUST_CERT
+        value: false
+      - key: NODE_ENV
+        value: production

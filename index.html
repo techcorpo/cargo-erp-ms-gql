@@ -1,0 +1,5 @@
+<!doctype html><meta charset="utf-8">
+<script>
+  const authed = !!localStorage.getItem('sessionKey');
+  location.replace(authed ? 'layout.html#/dashboard' : 'login.html');
+</script>

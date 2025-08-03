@@ -1,0 +1,22 @@
+{
+  "name": "cargo-pwa",
+  "version": "1.0.0",
+  "description": "",
+  "main": "sw.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "cd api && npm start",
+    "dev": "cd api && npm run dev",
+    "install:api": "cd api && npm install"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "supabase": "^2.33.9"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2"
+  }
+}
