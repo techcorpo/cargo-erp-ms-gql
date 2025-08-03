@@ -1,47 +1,32 @@
 // assets/admin-dashboard.js
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-const SUPABASE_URL = 'https://vvgsufumkaleisthgivp.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2Z3N1ZnVta2FsZWlzdGhnaXZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTQ1NTcsImV4cCI6MjA2ODY5MDU1N30.Uexa8bgQgGS51pZLEz3zXRkFhF8SBySq3kvsB4Doui0';
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+import { apiClient } from './api-client.js';
+import { getSession, setSession, logout } from './common.js';
 
 const $ = (id) => document.getElementById(id);
 
 let currentCompanyId = null;
 let adminSession = null;
 
-// Session management
-function getSession() {
-  const session = sessionStorage.getItem('adminSession');
-  if (!session) return null;
-  
-  const sessionData = JSON.parse(session);
-  if (Date.now() > sessionData.expiresAt) {
-    sessionStorage.removeItem('adminSession');
-    return null;
-  }
-  
-  return sessionData;
-}
-
-function logout() {
-  sessionStorage.removeItem('adminSession');
-  window.location.href = 'admin-login.html';
-}
-
 // Load stats
 async function loadStats() {
   try {
     console.log('Loading stats...');
     
-    const { data: stats, error } = await supabase
-      .from('companies')
-      .select('status');
+    const query = `
+      query GetCompanyStats {
+        companies(limit: 1000) {
+          status
+        }
+      }
+    `;
     
-    console.log('Stats query result:', { stats, error });
+    const result = await apiClient.graphqlQuery(query);
     
-    if (error) throw error;
+    console.log('Stats query result:', result);
+    
+    if (result.error) throw new Error(result.error);
+    
+    const stats = result.data.companies;
     
     if (!stats) {
       console.log('No stats data returned');
@@ -74,12 +59,36 @@ async function loadPendingCompanies() {
     $('companiesTable').classList.add('d-none');
     $('noCompanies').classList.add('d-none');
     
-    const { data: companies, error } = await supabase
-      .from('pending_companies')
-      .select('*');
+    const query = `
+      query GetCompanies($filter: CompanyFilter, $limit: Int, $offset: Int) {
+        companies(filter: $filter, limit: $limit, offset: $offset) {
+          id
+          companyName
+          companyEmail
+          industry
+          status
+          createdAt
+          approvedBy
+          approvedAt
+          rejectedAt
+          rejectionReason
+          approverEmail
+          approverFirstName
+          approverLastName
+        }
+      }
+    `;
     
-    if (error) throw error;
+    const variables = {
+      limit: 100,  // Get all companies, not just 20
+      offset: 0
+    };
     
+    const result = await apiClient.graphqlQuery(query, variables);
+    
+    if (result.error) throw new Error(result.error);
+    
+    const companies = result.data.companies;
     const tbody = $('companiesBody');
     tbody.innerHTML = '';
     
@@ -103,8 +112,8 @@ async function loadPendingCompanies() {
 // Create company table row
 function createCompanyRow(company) {
   const row = document.createElement('tr');
-  const submittedDate = new Date(company.created_at).toLocaleDateString();
-  const approvedDate = company.approved_at ? new Date(company.approved_at).toLocaleDateString() : '';
+  const submittedDate = new Date(company.createdAt).toLocaleDateString();
+  const approvedDate = company.approvedAt ? new Date(company.approvedAt).toLocaleDateString() : '';
   
   // Add status badge
   let statusBadge = '';
@@ -153,34 +162,34 @@ function createCompanyRow(company) {
   row.innerHTML = `
     <td>
       <div>
-        <strong>${company.company_name}</strong>
+        <strong>${company.companyName}</strong>
         <br>
         <small class="text-muted">${company.industry || 'N/A'}</small>
         <br>
         ${statusBadge}
-        ${company.status === 'REJECTED' && company.rejection_reason ? 
-          `<br><small class="text-danger"><i class="fas fa-exclamation-triangle"></i> ${company.rejection_reason}</small>` : ''}
+        ${company.status === 'REJECTED' && company.rejectionReason ? 
+          `<br><small class="text-danger"><i class="fas fa-exclamation-triangle"></i> ${company.rejectionReason}</small>` : ''}
       </div>
     </td>
     <td>
       <div>
-        ${company.admin_first_name} ${company.admin_last_name}
+        Contact Info
         <br>
-        <small class="text-muted">${company.admin_email}</small>
+        <small class="text-muted">${company.companyEmail}</small>
       </div>
     </td>
     <td>
       <div>
-        ${company.branch_name || 'N/A'}
+        Company Details
         <br>
-        <small class="text-muted">${company.city_name || 'N/A'}, ${company.state_name || 'N/A'}</small>
+        <small class="text-muted">${company.industry || 'N/A'}</small>
       </div>
     </td>
     <td>
       <div>
-        ${company.company_email}
+        ${company.companyEmail}
         <br>
-        <small class="text-muted">${company.company_phone || 'N/A'}</small>
+        <small class="text-muted">Email</small>
       </div>
     </td>
     <td>
@@ -201,44 +210,65 @@ function createCompanyRow(company) {
 // View company details
 window.viewCompany = async function(companyId) {
   try {
-    const { data: company, error } = await supabase
-      .from('pending_companies')
-      .select('*')
-      .eq('id', companyId)
-      .single();
+    const query = `
+      query GetCompany($id: UUID!) {
+        company(id: $id) {
+          id
+          companyName
+          companyEmail
+          companyAddress
+          companyPhone
+          industry
+          website
+          companyRegistrationNumber
+          taxId
+          status
+          createdAt
+          approvedAt
+          rejectedAt
+          rejectionReason
+          approverEmail
+          approverFirstName
+          approverLastName
+        }
+      }
+    `;
     
-    if (error) throw error;
+    const variables = { id: companyId };
+    const result = await apiClient.graphqlQuery(query, variables);
+    
+    if (result.error) throw new Error(result.error);
+    
+    const company = result.data.company;
     
     const detailsHtml = `
       <div class="row">
         <div class="col-md-6">
           <h6>Company Information</h6>
           <table class="table table-sm">
-            <tr><td><strong>Name:</strong></td><td>${company.company_name}</td></tr>
-            <tr><td><strong>Email:</strong></td><td>${company.company_email}</td></tr>
-            <tr><td><strong>Phone:</strong></td><td>${company.company_phone || 'N/A'}</td></tr>
+            <tr><td><strong>Name:</strong></td><td>${company.companyName}</td></tr>
+            <tr><td><strong>Email:</strong></td><td>${company.companyEmail}</td></tr>
+            <tr><td><strong>Phone:</strong></td><td>${company.companyPhone || 'N/A'}</td></tr>
             <tr><td><strong>Industry:</strong></td><td>${company.industry || 'N/A'}</td></tr>
             <tr><td><strong>Website:</strong></td><td>${company.website || 'N/A'}</td></tr>
+            <tr><td><strong>Registration Number:</strong></td><td>${company.companyRegistrationNumber || 'N/A'}</td></tr>
+            <tr><td><strong>Tax ID:</strong></td><td>${company.taxId || 'N/A'}</td></tr>
+            <tr><td><strong>Status:</strong></td><td><span class="badge bg-${company.status === 'APPROVED' ? 'success' : company.status === 'REJECTED' ? 'danger' : 'warning'}">${company.status}</span></td></tr>
           </table>
           
-          <h6 class="mt-3">Address</h6>
-          <p>${company.company_address}</p>
+          ${company.companyAddress ? `<h6 class="mt-3">Address</h6><p>${company.companyAddress}</p>` : ''}
         </div>
         
         <div class="col-md-6">
-          <h6>Admin User</h6>
+          <h6>Registration Details</h6>
           <table class="table table-sm">
-            <tr><td><strong>Name:</strong></td><td>${company.admin_first_name} ${company.admin_last_name}</td></tr>
-            <tr><td><strong>Email:</strong></td><td>${company.admin_email}</td></tr>
+            <tr><td><strong>Submitted:</strong></td><td>${new Date(company.createdAt).toLocaleDateString()}</td></tr>
+            ${company.approvedAt ? `<tr><td><strong>Approved:</strong></td><td>${new Date(company.approvedAt).toLocaleDateString()}</td></tr>` : ''}
+            ${company.rejectedAt ? `<tr><td><strong>Rejected:</strong></td><td>${new Date(company.rejectedAt).toLocaleDateString()}</td></tr>` : ''}
+            ${company.approverFirstName ? `<tr><td><strong>Approver:</strong></td><td>${company.approverFirstName} ${company.approverLastName} (${company.approverEmail})</td></tr>` : ''}
           </table>
           
-          <h6 class="mt-3">Primary Branch</h6>
-          <table class="table table-sm">
-            <tr><td><strong>Name:</strong></td><td>${company.branch_name}</td></tr>
-            <tr><td><strong>Phone:</strong></td><td>${company.branch_phone}</td></tr>
-            <tr><td><strong>Address:</strong></td><td>${company.address_line_1}</td></tr>
-            <tr><td><strong>Location:</strong></td><td>${company.city_name}, ${company.state_name}, ${company.country_name}</td></tr>
-          </table>
+          ${company.rejectionReason ? `<h6 class="mt-3">Rejection Reason</h6><p class="text-danger">${company.rejectionReason}</p>` : ''}
         </div>
       </div>
     `;
@@ -258,20 +288,38 @@ window.approveCompany = async function(companyId) {
   if (!confirm('Are you sure you want to approve this company?')) return;
   
   try {
-    const { data, error } = await supabase.rpc('approve_company', {
-      company_id_param: companyId,
-      system_user_id_param: adminSession.systemUserId
-    });
+    const mutation = `
+      mutation ApproveCompany($input: CompanyApprovalInput!) {
+        approveCompany(input: $input) {
+          success
+          message
+          company {
+            id
+            companyName
+            status
+          }
+        }
+      }
+    `;
     
-    if (error) throw error;
+    const variables = {
+      input: {
+        companyId: companyId,
+        approved: true
+      }
+    };
     
-    if (data.success) {
+    const result = await apiClient.graphqlQuery(mutation, variables);
+    
+    if (result.error) throw new Error(result.error);
+    
+    if (result.data.approveCompany.success) {
       alert('Company approved successfully!');
       loadPendingCompanies();
       loadStats();
       bootstrap.Modal.getInstance($('companyModal'))?.hide();
     } else {
-      throw new Error(data.error);
+      throw new Error(result.data.approveCompany.message || 'Failed to approve company');
     }
     
   } catch (error) {
@@ -295,22 +343,40 @@ async function rejectCompany() {
   }
   
   try {
-    const { data, error } = await supabase.rpc('reject_company', {
-      company_id_param: currentCompanyId,
-      system_user_id_param: adminSession.systemUserId,
-      rejection_reason_param: reason
-    });
+    const mutation = `
+      mutation RejectCompany($input: CompanyApprovalInput!) {
+        approveCompany(input: $input) {
+          success
+          message
+          company {
+            id
+            companyName
+            status
+          }
+        }
+      }
+    `;
     
-    if (error) throw error;
+    const variables = {
+      input: {
+        companyId: currentCompanyId,
+        approved: false,
+        rejectionReason: reason
+      }
+    };
     
-    if (data.success) {
+    const result = await apiClient.graphqlQuery(mutation, variables);
+    
+    if (result.error) throw new Error(result.error);
+    
+    if (result.data.approveCompany.success) {
       alert('Company rejected successfully!');
       loadPendingCompanies();
       loadStats();
       bootstrap.Modal.getInstance($('rejectModal'))?.hide();
       bootstrap.Modal.getInstance($('companyModal'))?.hide();
     } else {
-      throw new Error(data.error);
+      throw new Error(result.data.approveCompany.message || 'Failed to reject company');
     }
     
   } catch (error) {
