@@ -1,22 +1,5 @@
 // assets/admin-dashboard.js
-im    console.log('📥 GraphQL response:', result);
-    
-    if (result.error) {
-      console.error('❌ GraphQL error:', result.error);
-      throw new Error(result.error);
-    }
-    
-    if (result.errors) {
-      console.error('❌ GraphQL errors:', result.errors);
-      throw new Error(result.errors[0]?.message || 'GraphQL query failed');
-    }
-    
-    const stats = result.companies;
-    
-    if (!stats) {
-      console.log('ℹ️ No stats data returned');
-      return;
-    } from './api-client.js';
+import { apiClient } from './api-client.js';
 import { getSession, setSession, logout } from './common.js';
 
 const $ = (id) => document.getElementById(id);
