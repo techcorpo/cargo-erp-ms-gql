@@ -22,4 +22,4 @@ services:
       - key: NODE_ENV
         value: production
       - key: JWT_SECRET
-        value: your-super-secret-jwt-key-change-this-in-production
+        value: 6b052968d4c3cbfd859f402c54a45aefcaa7faacafce7c77832784fe5159d51a
