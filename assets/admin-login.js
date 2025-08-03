@@ -70,7 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Check if already logged in
   const session = getSession();
   if (session) {
-    window.location.href = 'admin-dashboard.html';
+    window.location.href = 'https://cargo-erp.netlify.app/admin-dashboard.html';
     return;
   }
 
@@ -142,7 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
       setSession(user.id, user.email, user.role);
       
       // Redirect to admin dashboard
-      window.location.href = 'admin-dashboard.html';
+      window.location.href = 'https://cargo-erp.netlify.app/admin-dashboard.html';
       
     } catch (error) {
       console.error('Login error:', error);
