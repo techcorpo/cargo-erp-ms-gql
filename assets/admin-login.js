@@ -21,22 +21,19 @@ function hideError() {
 }
 
 function showSpinner(show = true) {
-  const spinner = $('loginSpinner');
   const button = document.querySelector('button[type="submit"]');
   
-  if (!spinner || !button) {
-    console.error('Spinner or button element not found');
+  if (!button) {
+    console.error('Button element not found');
     return;
   }
   
   if (show) {
-    spinner.classList.remove('d-none');
     button.disabled = true;
     button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Signing In...';
   } else {
-    spinner.classList.add('d-none');
     button.disabled = false;
-    button.innerHTML = 'Sign In';
+    button.innerHTML = '<span id="loginSpinner" class="spinner-border spinner-border-sm d-none me-2"></span>Sign In';
   }
 }
 
@@ -141,13 +138,17 @@ document.addEventListener('DOMContentLoaded', () => {
       // Set session
       setSession(user.id, user.email, user.role);
       
-      // Redirect to admin dashboard
-      window.location.href = 'https://cargo-erp.netlify.app/admin-dashboard.html';
+      // Reset spinner before redirect
+      showSpinner(false);
+      
+      // Small delay to ensure UI updates, then redirect
+      setTimeout(() => {
+        window.location.href = 'https://cargo-erp.netlify.app/admin-dashboard.html';
+      }, 100);
       
     } catch (error) {
       console.error('Login error:', error);
       showError(error.message || 'Login failed. Please try again.');
-    } finally {
       showSpinner(false);
     }
   });
