@@ -65,7 +65,12 @@ async function startServer() {
   app.use(
     '/graphql',
     cors({
-      origin: true, // Allow all origins for debugging
+      origin: [
+        'http://localhost:8000',
+        'http://localhost:3000',
+        'https://carog-erp.netlify.app',
+        'https://cargo-erp.netlify.app'  // In case there's a typo in the domain
+      ],
       credentials: true
     }),
     express.json(),
