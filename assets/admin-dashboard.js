@@ -10,7 +10,7 @@ let adminSession = null;
 // Load stats
 async function loadStats() {
   try {
-    console.log('Loading stats...');
+    console.log('📊 Loading stats...');
     
     const query = `
       query GetCompanyStats {
@@ -22,25 +22,33 @@ async function loadStats() {
     
     const result = await apiClient.graphqlQuery(query);
     
-    console.log('Stats query result:', result);
+    console.log('📊 Stats query result:', result);
     
-    if (result.error) throw new Error(result.error);
+    if (result.error) {
+      console.error('❌ Stats error:', result.error);
+      throw new Error(result.error);
+    }
+    
+    if (result.errors) {
+      console.error('❌ Stats GraphQL errors:', result.errors);
+      throw new Error(result.errors[0]?.message || 'Stats query failed');
+    }
     
     const stats = result.data.companies;
     
     if (!stats) {
-      console.log('No stats data returned');
+      console.log('ℹ️ No stats data returned');
       return;
     }
     
-    console.log('Company statuses:', stats.map(c => c.status));
+    console.log('📊 Company statuses:', stats.map(c => c.status));
     
     const pending = stats.filter(c => c.status === 'PENDING_REVIEW').length;
     const approved = stats.filter(c => c.status === 'APPROVED').length;
     const rejected = stats.filter(c => c.status === 'REJECTED').length;
     const total = stats.length;
     
-    console.log('Counts:', { pending, approved, rejected, total });
+    console.log('📊 Counts:', { pending, approved, rejected, total });
     
     $('pendingCount').textContent = pending;
     $('approvedCount').textContent = approved;
@@ -48,16 +56,21 @@ async function loadStats() {
     $('totalCount').textContent = total;
     
   } catch (error) {
-    console.error('Error loading stats:', error);
+    console.error('❌ Error loading stats:', error);
   }
 }
 
 // Load all companies (pending, approved, and rejected)
 async function loadPendingCompanies() {
   try {
+    console.log('🔄 Starting to load companies...');
     $('loadingSpinner').classList.remove('d-none');
     $('companiesTable').classList.add('d-none');
     $('noCompanies').classList.add('d-none');
+    
+    // Check if we have auth token
+    const authToken = localStorage.getItem('auth_token');
+    console.log('🔑 Auth token exists:', !!authToken);
     
     const query = `
       query GetCompanies($filter: CompanyFilter, $limit: Int, $offset: Int) {
@@ -84,17 +97,33 @@ async function loadPendingCompanies() {
       offset: 0
     };
     
+    console.log('📤 Sending GraphQL query...', { query: query.substring(0, 100) + '...', variables });
+    
     const result = await apiClient.graphqlQuery(query, variables);
     
-    if (result.error) throw new Error(result.error);
+    console.log('📥 GraphQL response:', result);
+    
+    if (result.error) {
+      console.error('❌ GraphQL error:', result.error);
+      throw new Error(result.error);
+    }
+    
+    if (result.errors) {
+      console.error('❌ GraphQL errors:', result.errors);
+      throw new Error(result.errors[0]?.message || 'GraphQL query failed');
+    }
     
     const companies = result.data.companies;
+    console.log('✅ Loaded companies:', companies.length);
+    
     const tbody = $('companiesBody');
     tbody.innerHTML = '';
     
     if (companies.length === 0) {
+      console.log('ℹ️ No companies found');
       $('noCompanies').classList.remove('d-none');
     } else {
+      console.log('📊 Creating table rows for', companies.length, 'companies');
       companies.forEach(company => {
         const row = createCompanyRow(company);
         tbody.appendChild(row);
@@ -103,7 +132,11 @@ async function loadPendingCompanies() {
     }
     
   } catch (error) {
-    console.error('Error loading companies:', error);
+    console.error('❌ Error loading companies:', error);
+    // Show error to user
+    const tbody = $('companiesBody');
+    tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger">Error loading companies: ${error.message}</td></tr>`;
+    $('companiesTable').classList.remove('d-none');
   } finally {
     $('loadingSpinner').classList.add('d-none');
   }
@@ -386,15 +419,26 @@ async function rejectCompany() {
 
 // Initialize page
 document.addEventListener('DOMContentLoaded', () => {
+  console.log('🚀 Admin Dashboard initializing...');
+  
   // Check authentication
   adminSession = getSession();
+  console.log('👤 Admin session:', adminSession);
+  
   if (!adminSession) {
+    console.log('❌ No admin session found, redirecting to login');
     window.location.href = 'admin-login.html';
     return;
   }
   
+  // Check auth token
+  const authToken = localStorage.getItem('auth_token');
+  console.log('🔑 Auth token in localStorage:', !!authToken);
+  
   // Display admin info
   $('adminInfo').textContent = `${adminSession.email} (${adminSession.role})`;
+  
+  console.log('📊 Loading dashboard data...');
   
   // Load data
   loadStats();
@@ -414,7 +458,10 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Auto-refresh every 30 seconds
   setInterval(() => {
+    console.log('🔄 Auto-refreshing data...');
     loadPendingCompanies();
     loadStats();
   }, 30000);
+  
+  console.log('✅ Admin Dashboard initialized');
 });
