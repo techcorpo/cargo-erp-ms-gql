@@ -79,12 +79,13 @@ async function startServer() {
     res.json({ status: 'OK', service: 'GraphQL API', timestamp: new Date().toISOString() });
   });
   
-  const PORT = process.env.GRAPHQL_PORT || 4000;
+  const PORT = process.env.PORT || process.env.GRAPHQL_PORT || 4000;
+  const HOST = process.env.HOST || '0.0.0.0';
   
-  await new Promise((resolve) => httpServer.listen({ port: PORT }, resolve));
+  await new Promise((resolve) => httpServer.listen({ port: PORT, host: HOST }, resolve));
   
-  console.log(`🚀 GraphQL Server ready at http://localhost:${PORT}/graphql`);
-  console.log(`📊 GraphQL Playground available at http://localhost:${PORT}/graphql`);
+  console.log(`🚀 GraphQL Server ready at http://${HOST}:${PORT}/graphql`);
+  console.log(`📊 GraphQL Playground available at http://${HOST}:${PORT}/graphql`);
 }
 
 // Error handling
