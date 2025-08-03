@@ -65,7 +65,7 @@ async function startServer() {
   app.use(
     '/graphql',
     cors({
-      origin: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : true,
+      origin: true, // Allow all origins for debugging
       credentials: true
     }),
     express.json(),

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Countries Loading</title>
+</head>
+<body>
+    <h1>Debug Countries Loading</h1>
+    <div>
+        <label>Country:</label>
+        <select id="country_id">
+            <option value="">Select Country</option>
+        </select>
+    </div>
+    
+    <div id="debug-output"></div>
+    
+    <script>
+        const GRAPHQL_ENDPOINT = 'https://cargo-erp-ms-gql.onrender.com/graphql';
+        
+        async function graphqlQuery(query, variables = {}) {
+            try {
+                console.log('Making GraphQL request to:', GRAPHQL_ENDPOINT);
+                console.log('Query:', query);
+                console.log('Variables:', variables);
+                
+                const response = await fetch(GRAPHQL_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        query,
+                        variables
+                    })
+                });
+                
+                console.log('Response status:', response.status);
+                console.log('Response ok:', response.ok);
+                
+                const result = await response.json();
+                console.log('Response data:', result);
+                
+                if (result.errors) {
+                    throw new Error(result.errors[0].message);
+                }
+                
+                return result.data;
+            } catch (error) {
+                console.error('GraphQL error:', error);
+                document.getElementById('debug-output').innerHTML = `
+                    <div style="color: red;">
+                        <strong>Error:</strong> ${error.message}
+                    </div>
+                `;
+                throw error;
+            }
+        }
+        
+        async function loadCountries() {
+            try {
+                console.log('🌍 Loading countries...');
+                const query = `
+                    query GetCountries {
+                        countries {
+                            id
+                            countryName
+                        }
+                    }
+                `;
+                
+                const data = await graphqlQuery(query);
+                console.log('✅ Countries loaded:', data.countries.length);
+                
+                const countrySelect = document.getElementById('country_id');
+                if (countrySelect) {
+                    countrySelect.innerHTML = '<option value="">Select Country</option>';
+                    data.countries.forEach(country => {
+                        const option = document.createElement('option');
+                        option.value = country.id;
+                        option.textContent = country.countryName;
+                        countrySelect.appendChild(option);
+                    });
+                    console.log('✅ Country dropdown populated');
+                    
+                    document.getElementById('debug-output').innerHTML = `
+                        <div style="color: green;">
+                            <strong>Success!</strong> Loaded ${data.countries.length} countries.
+                        </div>
+                    `;
+                } else {
+                    console.error('❌ Country select element not found');
+                }
+            } catch (error) {
+                console.error('❌ Failed to load countries:', error);
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM loaded, starting countries load...');
+            loadCountries();
+        });
+    </script>
+</body>
+</html>
