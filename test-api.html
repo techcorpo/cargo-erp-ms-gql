@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test GraphQL API</title>
+</head>
+<body>
+    <h1>GraphQL API Tester</h1>
+    <div>
+        <h3>Test Countries Query:</h3>
+        <button onclick="testCountries()">Test Countries</button>
+        <pre id="countries-result"></pre>
+    </div>
+    
+    <div>
+        <h3>Test Login:</h3>
+        <input type="email" id="email" placeholder="Email" value="admin@example.com">
+        <input type="password" id="password" placeholder="Password" value="password123">
+        <button onclick="testLogin()">Test Login</button>
+        <pre id="login-result"></pre>
+    </div>
+
+    <script>
+        const API_URL = 'https://cargo-erp-ms-gql.onrender.com/graphql';
+
+        async function graphqlRequest(query, variables = {}) {
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ query, variables })
+                });
+                
+                const result = await response.json();
+                return result;
+            } catch (error) {
+                return { error: error.message };
+            }
+        }
+
+        async function testCountries() {
+            const query = `
+                query {
+                    countries {
+                        id
+                        name
+                        code
+                    }
+                }
+            `;
+            
+            const result = await graphqlRequest(query);
+            document.getElementById('countries-result').textContent = JSON.stringify(result, null, 2);
+        }
+
+        async function testLogin() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            const query = `
+                mutation Login($input: LoginInput!) {
+                    login(input: $input) {
+                        success
+                        message
+                        token
+                        user {
+                            id
+                            email
+                            role
+                        }
+                    }
+                }
+            `;
+            
+            const variables = {
+                input: { email, password }
+            };
+            
+            const result = await graphqlRequest(query, variables);
+            document.getElementById('login-result').textContent = JSON.stringify(result, null, 2);
+        }
+    </script>
+</body>
+</html>

@@ -1,7 +1,7 @@
 // assets/register.js - Updated for GraphQL API
 console.log('🚀 register-graphql.js loaded');
 
-const GRAPHQL_ENDPOINT = 'http://localhost:4000/graphql';
+const GRAPHQL_ENDPOINT = 'https://cargo-erp-ms-gql.onrender.com/graphql';
 
 const $ = (id) => document.getElementById(id);
 const val = id => {
