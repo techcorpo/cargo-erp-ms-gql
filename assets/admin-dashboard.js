@@ -1,5 +1,22 @@
 // assets/admin-dashboard.js
-import { apiClient } from './api-client.js';
+im    console.log('📥 GraphQL response:', result);
+    
+    if (result.error) {
+      console.error('❌ GraphQL error:', result.error);
+      throw new Error(result.error);
+    }
+    
+    if (result.errors) {
+      console.error('❌ GraphQL errors:', result.errors);
+      throw new Error(result.errors[0]?.message || 'GraphQL query failed');
+    }
+    
+    const stats = result.companies;
+    
+    if (!stats) {
+      console.log('ℹ️ No stats data returned');
+      return;
+    } from './api-client.js';
 import { getSession, setSession, logout } from './common.js';
 
 const $ = (id) => document.getElementById(id);
@@ -11,6 +28,13 @@ let adminSession = null;
 async function loadStats() {
   try {
     console.log('📊 Loading stats...');
+    
+    // Check authentication
+    const authToken = localStorage.getItem('auth_token');
+    if (!authToken) {
+      console.error('❌ No auth token found');
+      throw new Error('Authentication required. Please login again.');
+    }
     
     const query = `
       query GetCompanyStats {
@@ -34,7 +58,7 @@ async function loadStats() {
       throw new Error(result.errors[0]?.message || 'Stats query failed');
     }
     
-    const stats = result.data.companies;
+    const stats = result.companies;
     
     if (!stats) {
       console.log('ℹ️ No stats data returned');
@@ -81,13 +105,15 @@ async function loadPendingCompanies() {
           industry
           status
           createdAt
-          approvedBy
+          approvedBy {
+            id
+            email
+            firstName
+            lastName
+          }
           approvedAt
           rejectedAt
           rejectionReason
-          approverEmail
-          approverFirstName
-          approverLastName
         }
       }
     `;
@@ -113,7 +139,7 @@ async function loadPendingCompanies() {
       throw new Error(result.errors[0]?.message || 'GraphQL query failed');
     }
     
-    const companies = result.data.companies;
+    const companies = result.companies;
     console.log('✅ Loaded companies:', companies.length);
     
     const tbody = $('companiesBody');
@@ -257,12 +283,15 @@ window.viewCompany = async function(companyId) {
           taxId
           status
           createdAt
+          approvedBy {
+            id
+            email
+            firstName
+            lastName
+          }
           approvedAt
           rejectedAt
           rejectionReason
-          approverEmail
-          approverFirstName
-          approverLastName
         }
       }
     `;
@@ -272,7 +301,7 @@ window.viewCompany = async function(companyId) {
     
     if (result.error) throw new Error(result.error);
     
-    const company = result.data.company;
+    const company = result.company;
     
     const detailsHtml = `
       <div class="row">
@@ -298,7 +327,7 @@ window.viewCompany = async function(companyId) {
             <tr><td><strong>Submitted:</strong></td><td>${new Date(company.createdAt).toLocaleDateString()}</td></tr>
             ${company.approvedAt ? `<tr><td><strong>Approved:</strong></td><td>${new Date(company.approvedAt).toLocaleDateString()}</td></tr>` : ''}
             ${company.rejectedAt ? `<tr><td><strong>Rejected:</strong></td><td>${new Date(company.rejectedAt).toLocaleDateString()}</td></tr>` : ''}
-            ${company.approverFirstName ? `<tr><td><strong>Approver:</strong></td><td>${company.approverFirstName} ${company.approverLastName} (${company.approverEmail})</td></tr>` : ''}
+            ${company.approvedBy ? `<tr><td><strong>Approver:</strong></td><td>${company.approvedBy.firstName} ${company.approvedBy.lastName} (${company.approvedBy.email})</td></tr>` : ''}
           </table>
           
           ${company.rejectionReason ? `<h6 class="mt-3">Rejection Reason</h6><p class="text-danger">${company.rejectionReason}</p>` : ''}
@@ -346,13 +375,13 @@ window.approveCompany = async function(companyId) {
     
     if (result.error) throw new Error(result.error);
     
-    if (result.data.approveCompany.success) {
+    if (result.approveCompany.success) {
       alert('Company approved successfully!');
       loadPendingCompanies();
       loadStats();
       bootstrap.Modal.getInstance($('companyModal'))?.hide();
     } else {
-      throw new Error(result.data.approveCompany.message || 'Failed to approve company');
+      throw new Error(result.approveCompany.message || 'Failed to approve company');
     }
     
   } catch (error) {
@@ -402,14 +431,14 @@ async function rejectCompany() {
     
     if (result.error) throw new Error(result.error);
     
-    if (result.data.approveCompany.success) {
+    if (result.approveCompany.success) {
       alert('Company rejected successfully!');
       loadPendingCompanies();
       loadStats();
       bootstrap.Modal.getInstance($('rejectModal'))?.hide();
       bootstrap.Modal.getInstance($('companyModal'))?.hide();
     } else {
-      throw new Error(result.data.approveCompany.message || 'Failed to reject company');
+      throw new Error(result.approveCompany.message || 'Failed to reject company');
     }
     
   } catch (error) {
