@@ -207,17 +207,45 @@ export class DatabaseService {
 
   // Location queries
   async getCountries() {
-    const query = "SELECT * FROM countries ORDER BY country_name";
+    const query = `
+      SELECT 
+        id,
+        country_name as countryName,
+        country_code as countryCode,
+        created_at as createdAt
+      FROM countries 
+      ORDER BY country_name
+    `;
     return await this.query(query);
   }
 
   async getStatesByCountryId(countryId) {
-    const query = "SELECT * FROM states WHERE country_id = @countryId ORDER BY state_name";
+    const query = `
+      SELECT 
+        id,
+        country_id as countryId,
+        state_name as stateName,
+        state_code as stateCode,
+        created_at as createdAt
+      FROM states 
+      WHERE country_id = @countryId 
+      ORDER BY state_name
+    `;
     return await this.query(query, { countryId });
   }
 
   async getCitiesByStateId(stateId) {
-    const query = "SELECT * FROM cities WHERE state_id = @stateId ORDER BY city_name";
+    const query = `
+      SELECT 
+        id,
+        state_id as stateId,
+        city_name as cityName,
+        city_code as cityCode,
+        created_at as createdAt
+      FROM cities 
+      WHERE state_id = @stateId 
+      ORDER BY city_name
+    `;
     return await this.query(query, { stateId });
   }
 
