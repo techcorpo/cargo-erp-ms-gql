@@ -95,7 +95,6 @@ async function loadPendingCompanies() {
             lastName
           }
           approvedAt
-          rejectedAt
           rejectionReason
         }
       }
@@ -273,7 +272,6 @@ window.viewCompany = async function(companyId) {
             lastName
           }
           approvedAt
-          rejectedAt
           rejectionReason
         }
       }
@@ -309,7 +307,7 @@ window.viewCompany = async function(companyId) {
           <table class="table table-sm">
             <tr><td><strong>Submitted:</strong></td><td>${new Date(company.createdAt).toLocaleDateString()}</td></tr>
             ${company.approvedAt ? `<tr><td><strong>Approved:</strong></td><td>${new Date(company.approvedAt).toLocaleDateString()}</td></tr>` : ''}
-            ${company.rejectedAt ? `<tr><td><strong>Rejected:</strong></td><td>${new Date(company.rejectedAt).toLocaleDateString()}</td></tr>` : ''}
+            ${company.status === 'REJECTED' ? `<tr><td><strong>Status:</strong></td><td><span class="text-danger">Rejected</span></td></tr>` : ''}
             ${company.approvedBy ? `<tr><td><strong>Approver:</strong></td><td>${company.approvedBy.firstName} ${company.approvedBy.lastName} (${company.approvedBy.email})</td></tr>` : ''}
           </table>
           
