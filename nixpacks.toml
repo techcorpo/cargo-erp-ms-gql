@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ['nodejs', 'npm']
+
+[phases.install]
+cmds = ['cd api && npm ci']
+
+[phases.build]
+cmds = ['cd api && npm run build || echo "No build script found"']
+
+[start]
+cmd = 'cd api && npm start'
