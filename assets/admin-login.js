@@ -104,8 +104,8 @@ document.addEventListener('DOMContentLoaded', () => {
       console.log('Attempting login for:', email);
       
       const mutation = `
-        mutation AdminLogin($email: String!, $password: String!) {
-          login(email: $email, password: $password) {
+        mutation AdminLogin($input: LoginInput!) {
+          login(input: $input) {
             success
             message
             token
@@ -120,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       `;
       
-      const variables = { email, password };
+      const variables = { input: { email, password } };
       const result = await apiClient.graphqlQuery(mutation, variables);
       
       console.log('Login response:', result);
@@ -129,11 +129,11 @@ document.addEventListener('DOMContentLoaded', () => {
         throw new Error(result.error);
       }
       
-      if (!result.data.login.success) {
-        throw new Error(result.data.login.message || 'Invalid credentials');
+      if (!result.login.success) {
+        throw new Error(result.login.message || 'Invalid credentials');
       }
       
-      const { token, user } = result.data.login;
+      const { token, user } = result.login;
       
       // Store the auth token
       localStorage.setItem('auth_token', token);
