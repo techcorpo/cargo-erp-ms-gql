@@ -230,8 +230,8 @@ const locations = {
       query {
         countries {
           id
-          name
-          code
+          countryName
+          countryCode
         }
       }
     `;
@@ -245,8 +245,8 @@ const locations = {
       query GetStates($countryId: String!) {
         states(countryId: $countryId) {
           id
-          name
-          countryId
+          stateName
+          stateCode
         }
       }
     `;
@@ -260,8 +260,8 @@ const locations = {
       query GetCities($stateId: String!) {
         cities(stateId: $stateId) {
           id
-          name
-          stateId
+          cityName
+          cityCode
         }
       }
     `;
