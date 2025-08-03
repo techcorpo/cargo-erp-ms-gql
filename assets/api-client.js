@@ -278,3 +278,15 @@ window.CargoAPI = {
   registration,
   locations
 };
+
+// ES6 module exports
+export const apiClient = {
+  graphqlQuery,
+  auth,
+  companies,
+  registration,
+  locations
+};
+
+// Also export individual functions for convenience
+export { graphqlQuery, auth, companies, registration, locations };
