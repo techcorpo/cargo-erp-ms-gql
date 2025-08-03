@@ -1,10 +1,7 @@
-// assets/register.js
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+// assets/register.js - Updated for GraphQL API
+console.log('🚀 register-graphql.js loaded');
 
-const SUPABASE_URL = 'https://vvgsufumkaleisthgivp.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2Z3N1ZnVta2FsZWlzdGhnaXZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTQ1NTcsImV4cCI6MjA2ODY5MDU1N30.Uexa8bgQgGS51pZLEz3zXRkFhF8SBySq3kvsB4Doui0';
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const GRAPHQL_ENDPOINT = 'https://cargo-erp-ms-gql.onrender.com/graphql';
 
 const $ = (id) => document.getElementById(id);
 const val = id => {
@@ -24,31 +21,59 @@ const bool = id => {
   return element.checked;
 };
 
+// GraphQL query helper
+async function graphqlQuery(query, variables = {}) {
+  const response = await fetch(GRAPHQL_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      query,
+      variables
+    })
+  });
+  
+  const result = await response.json();
+  
+  if (result.errors) {
+    throw new Error(result.errors[0].message);
+  }
+  
+  return result.data;
+}
+
 // Load countries on page load
 async function loadCountries() {
   try {
-    const { data: countries, error } = await supabase
-      .from('countries')
-      .select('id, country_name')
-      .order('country_name');
+    console.log('🌍 Loading countries...');
+    const query = `
+      query GetCountries {
+        countries {
+          id
+          countryName
+        }
+      }
+    `;
     
-    if (error) {
-      console.error('Error loading countries:', error);
-      return;
-    }
+    const data = await graphqlQuery(query);
+    console.log('✅ Countries loaded:', data.countries.length);
     
     const countrySelect = $('country_id');
     if (countrySelect) {
       countrySelect.innerHTML = '<option value="">Select Country</option>';
-      countries.forEach(country => {
+      data.countries.forEach(country => {
         const option = document.createElement('option');
         option.value = country.id;
-        option.textContent = country.country_name;
+        option.textContent = country.countryName;
         countrySelect.appendChild(option);
       });
+      console.log('✅ Country dropdown populated');
+    } else {
+      console.error('❌ Country select element not found');
     }
   } catch (error) {
-    console.error('Failed to load countries:', error);
+    console.error('❌ Failed to load countries:', error);
   }
 }
 
@@ -70,22 +95,22 @@ async function loadStates(countryId) {
       return;
     }
     
-    const { data: states, error } = await supabase
-      .from('states')
-      .select('id, state_name')
-      .eq('country_id', countryId)
-      .order('state_name');
+    const query = `
+      query GetStates($countryId: String!) {
+        states(countryId: $countryId) {
+          id
+          stateName
+        }
+      }
+    `;
     
-    if (error) {
-      console.error('Error loading states:', error);
-      return;
-    }
+    const data = await graphqlQuery(query, { countryId });
     
     stateSelect.disabled = false;
-    states.forEach(state => {
+    data.states.forEach(state => {
       const option = document.createElement('option');
       option.value = state.id;
-      option.textContent = state.state_name;
+      option.textContent = state.stateName;
       stateSelect.appendChild(option);
     });
   } catch (error) {
@@ -108,22 +133,22 @@ async function loadCities(stateId) {
       return;
     }
     
-    const { data: cities, error } = await supabase
-      .from('cities')
-      .select('id, city_name')
-      .eq('state_id', stateId)
-      .order('city_name');
+    const query = `
+      query GetCities($stateId: String!) {
+        cities(stateId: $stateId) {
+          id
+          cityName
+        }
+      }
+    `;
     
-    if (error) {
-      console.error('Error loading cities:', error);
-      return;
-    }
+    const data = await graphqlQuery(query, { stateId });
     
     citySelect.disabled = false;
-    cities.forEach(city => {
+    data.cities.forEach(city => {
       const option = document.createElement('option');
       option.value = city.id;
-      option.textContent = city.city_name;
+      option.textContent = city.cityName;
       citySelect.appendChild(option);
     });
   } catch (error) {
@@ -133,19 +158,31 @@ async function loadCities(stateId) {
 
 // Event listeners for cascading dropdowns
 document.addEventListener('DOMContentLoaded', () => {
-  loadCountries();
+  console.log('🚀 DOM loaded, initializing dropdowns...');
   
+  // Check if elements exist
   const countrySelect = $('country_id');
   const stateSelect = $('state_id');
+  const citySelect = $('city_id');
+  
+  console.log('Elements found:', {
+    country: !!countrySelect,
+    state: !!stateSelect,
+    city: !!citySelect
+  });
+  
+  loadCountries();
   
   if (countrySelect) {
     countrySelect.addEventListener('change', (e) => {
+      console.log('Country changed to:', e.target.value);
       loadStates(e.target.value);
     });
   }
   
   if (stateSelect) {
     stateSelect.addEventListener('change', (e) => {
+      console.log('State changed to:', e.target.value);
       loadCities(e.target.value);
     });
   }
@@ -155,36 +192,6 @@ document.addEventListener('DOMContentLoaded', () => {
 document.getElementById('registerForm').addEventListener('submit', async (e) => {
   e.preventDefault();
 
-  const company = {
-    company_name: val('company_name'),
-    company_address: val('company_address'),
-    company_email: val('company_email'),
-    company_phone: val('company_phone') || null,
-    industry: val('industry') || null,
-    website: val('website') || null,
-    status: 'PENDING_REVIEW'
-  };
-
-  const user = {
-    email: val('user_email'),
-    password: val('user_password'),
-    first_name: val('first_name') || null,
-    last_name: val('last_name') || null,
-    role: 'COMPANY_ADMIN'
-  };
-
-  const branch = {
-    branch_name: val('branch_name'),
-    branch_phone: val('branch_phone'),
-    address_line_1: val('address_line_1'),
-    address_line_2: val('address_line_2') || null,
-    country_id: val('country_id') || null,
-    state_id: val('state_id') || null,
-    city_id: val('city_id') || null,
-    postal_code: val('postal_code') || null,
-    is_primary: true
-  };
-
   // Hide previous messages
   const errEl = document.getElementById('registerError');
   const okEl = document.getElementById('registerOk');
@@ -192,59 +199,72 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
   if (okEl) okEl.style.display = 'none';
 
   try {
-    // First insert the company
-    const { data: companyData, error: companyError } = await supabase
-      .from('companies')
-      .insert([company])
-      .select()
-      .single();
-
-    if (companyError) {
-      throw new Error(`Company registration failed: ${companyError.message}`);
-    }
-
-    // Then insert the primary branch
-    branch.company_id = companyData.id;
-    
-    const { data: branchData, error: branchError } = await supabase
-      .from('branches')
-      .insert([branch])
-      .select()
-      .single();
-
-    if (branchError) {
-      throw new Error(`Branch creation failed: ${branchError.message}`);
-    }
-
-    // Finally insert the user with company_id and branch_id
-    user.company_id = companyData.id;
-    user.branch_id = branchData.id;
-    
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .insert([user])
-      .select()
-      .single();
-
-    if (userError) {
-      throw new Error(`User registration failed: ${userError.message}`);
-    }
-
-    // Success - show success message
-    if (okEl) {
-      okEl.textContent = 'Registration submitted successfully! We will review and activate your company shortly.';
-      okEl.style.display = 'inline';
-    }
-    
-    // Reset form
-    document.getElementById('registerForm').reset();
-    
-    // Optional: redirect to login after a pause
-    setTimeout(() => {
-      if (confirm('Registration successful! Would you like to go to the login page?')) {
-        location.href = 'login.html';
+    const mutation = `
+      mutation RegisterCompany($input: RegisterCompanyInput!) {
+        registerCompany(input: $input) {
+          success
+          message
+          company {
+            id
+            companyName
+            status
+          }
+        }
       }
-    }, 2000);
+    `;
+    
+    const variables = {
+      input: {
+        company: {
+          companyName: val('company_name'),
+          companyEmail: val('company_email'),
+          companyAddress: val('company_address'),
+          companyPhone: val('company_phone') || null,
+          industry: val('industry') || null,
+          website: val('website') || null,
+          companyRegistrationNumber: val('company_registration_number') || null,
+          taxId: val('tax_id') || null
+        },
+        user: {
+          email: val('user_email'),
+          password: val('user_password'),
+          firstName: val('first_name') || null,
+          lastName: val('last_name') || null
+        },
+        branch: {
+          branchName: val('branch_name'),
+          branchPhone: val('branch_phone'),
+          addressLine1: val('address_line_1'),
+          addressLine2: val('address_line_2') || null,
+          countryId: val('country_id') || null,
+          stateId: val('state_id') || null,
+          cityId: val('city_id') || null,
+          postalCode: val('postal_code') || null
+        }
+      }
+    };
+
+    const data = await graphqlQuery(mutation, variables);
+    
+    if (data.registerCompany.success) {
+      // Success - show success message
+      if (okEl) {
+        okEl.textContent = data.registerCompany.message || 'Registration submitted successfully! We will review and activate your company shortly.';
+        okEl.style.display = 'inline';
+      }
+      
+      // Reset form
+      document.getElementById('registerForm').reset();
+      
+      // Optional: redirect to login after a pause
+      setTimeout(() => {
+        if (confirm('Registration successful! Would you like to go to the login page?')) {
+          location.href = 'login.html';
+        }
+      }, 2000);
+    } else {
+      throw new Error(data.registerCompany.message || 'Registration failed');
+    }
 
   } catch (error) {
     if (errEl) {

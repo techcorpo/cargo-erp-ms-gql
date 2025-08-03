@@ -13,9 +13,6 @@
   "author": "",
   "license": "ISC",
   "type": "commonjs",
-  "devDependencies": {
-    "supabase": "^2.33.9"
-  },
   "dependencies": {
     "bcryptjs": "^3.0.2"
   }
