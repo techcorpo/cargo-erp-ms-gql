@@ -16,7 +16,10 @@ async function loadStats() {
     const authToken = localStorage.getItem('auth_token');
     if (!authToken) {
       console.error('❌ No auth token found');
-      throw new Error('Authentication required. Please login again.');
+      // Clear session and redirect to login
+      logout();
+      window.location.href = 'admin-login.html';
+      return;
     }
     
     const query = `
@@ -64,6 +67,13 @@ async function loadStats() {
     
   } catch (error) {
     console.error('❌ Error loading stats:', error);
+    
+    // If authentication error, redirect to login
+    if (error.message.includes('Authentication required') || error.message.includes('UNAUTHENTICATED')) {
+      console.log('🔄 Authentication failed, redirecting to login...');
+      logout();
+      window.location.href = 'admin-login.html';
+    }
   }
 }
 
@@ -78,6 +88,13 @@ async function loadPendingCompanies() {
     // Check if we have auth token
     const authToken = localStorage.getItem('auth_token');
     console.log('🔑 Auth token exists:', !!authToken);
+    
+    if (!authToken) {
+      console.error('❌ No auth token found');
+      logout();
+      window.location.href = 'admin-login.html';
+      return;
+    }
     
     const query = `
       query GetCompanies($filter: CompanyFilter, $limit: Int, $offset: Int) {
@@ -141,6 +158,15 @@ async function loadPendingCompanies() {
     
   } catch (error) {
     console.error('❌ Error loading companies:', error);
+    
+    // If authentication error, redirect to login
+    if (error.message.includes('Authentication required') || error.message.includes('UNAUTHENTICATED')) {
+      console.log('🔄 Authentication failed, redirecting to login...');
+      logout();
+      window.location.href = 'admin-login.html';
+      return;
+    }
+    
     // Show error to user
     const tbody = $('companiesBody');
     tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger">Error loading companies: ${error.message}</td></tr>`;
@@ -435,15 +461,16 @@ document.addEventListener('DOMContentLoaded', () => {
   adminSession = getSession();
   console.log('👤 Admin session:', adminSession);
   
-  if (!adminSession) {
-    console.log('❌ No admin session found, redirecting to login');
-    window.location.href = 'admin-login.html';
-    return;
-  }
-  
   // Check auth token
   const authToken = localStorage.getItem('auth_token');
   console.log('🔑 Auth token in localStorage:', !!authToken);
+  
+  if (!adminSession || !authToken) {
+    console.log('❌ Missing admin session or auth token, redirecting to login');
+    logout(); // Clear any partial session data
+    window.location.href = 'admin-login.html';
+    return;
+  }
   
   // Display admin info
   $('adminInfo').textContent = `${adminSession.email} (${adminSession.role})`;
